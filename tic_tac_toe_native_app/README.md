@@ -11,6 +11,8 @@ A simple Tic Tac Toe game implemented using Streamlit. Includes:
 1) Install dependencies:
 ```bash
 pip install -r requirements.txt
+# For running tests, also install dev requirements:
+pip install -r requirements-dev.txt
 ```
 
 2) Run the app:
@@ -51,8 +53,8 @@ Enjoy!
 
 This project includes a pytest-based test suite with unit, integration-like, and lightweight performance tests.
 
-- Install dev dependencies (pytest is not pinned in requirements.txt to keep runtime light). You can install it locally with:
-  pip install pytest
+- Install runtime + dev dependencies (pytest is kept in a separate dev file to keep runtime light):
+  pip install -r requirements.txt -r requirements-dev.txt
 
 - Run tests from the container root:
   pytest -q

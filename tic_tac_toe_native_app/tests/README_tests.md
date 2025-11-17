@@ -7,8 +7,8 @@ This folder contains tests powered by pytest.
 - Lightweight performance checks are embedded within the test files to ensure functions remain efficient.
 
 How to run:
-1. Install pytest (not included in runtime requirements):
-   pip install pytest
+1. Install runtime + dev requirements (pytest lives in requirements-dev.txt):
+   pip install -r requirements.txt -r requirements-dev.txt
 
 2. From the container root directory:
    pytest -q
