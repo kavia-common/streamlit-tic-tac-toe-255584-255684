@@ -46,3 +46,17 @@ This will start a local development server and open the app in your browser.
 - Use the sidebar to switch modes and difficulty; use "New Game" to reset.
 
 Enjoy!
+
+## Testing
+
+This project includes a pytest-based test suite with unit, integration-like, and lightweight performance tests.
+
+- Install dev dependencies (pytest is not pinned in requirements.txt to keep runtime light). You can install it locally with:
+  pip install pytest
+
+- Run tests from the container root:
+  pytest -q
+
+Test layout:
+- tests/test_game_logic_unit.py — unit tests for pure game logic functions
+- tests/test_app_session_integration.py — integration-style tests that simulate session state transitions without launching Streamlit
