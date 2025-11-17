@@ -1,0 +1,4 @@
+{
+    "command": "cmake --build build",
+    "working_directory": "/home/kavia/workspace/code-generation/streamlit-tic-tac-toe-255584-255684/tic_tac_toe_native_app"
+}
