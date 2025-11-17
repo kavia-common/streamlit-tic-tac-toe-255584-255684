@@ -1,2 +1,1 @@
-# Minimal dependencies for the Streamlit Tic Tac Toe app
-streamlit>=1.32
+streamlit>=1.30

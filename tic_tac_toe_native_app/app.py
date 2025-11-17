@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from typing import List, Optional, Tuple
 from game_logic import (
@@ -285,4 +286,15 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Note: Port/address binding is handled by the launcher command:
+    #   python -m streamlit run app.py --server.port ${PORT:-8501} --server.address 0.0.0.0
+    # We keep this block simple to avoid bash parsing issues in some environments.
+    # PUBLIC_INTERFACE
+    def get_runtime_port() -> int:
+        """Return the port number from PORT environment variable or the default 8501."""
+        try:
+            return int(os.environ.get("PORT", "8501"))
+        except ValueError:
+            return 8501
+
     main()
