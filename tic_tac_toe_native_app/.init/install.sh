@@ -1,30 +1,68 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# install: create deterministic venv and install requirements non-interactively
-WS="/home/kavia/workspace/code-generation/streamlit-tic-tac-toe-255584-255684/tic_tac_toe_native_app"
-cd "$WS"
-VENV="$WS/.venv"
-PIP_LOG="$WS/pip-install.log"
-REQ="$WS/requirements.txt"
-# create venv if missing
-if [ ! -d "$VENV" ]; then
-  python3 -m venv "$VENV"
+# Install Python deps into user site with pip sanity checks
+WORKSPACE="${WORKSPACE:-/home/kavia/workspace/code-generation/streamlit-tic-tac-toe-255584-255684/tic_tac_toe_native_app}"
+cd "$WORKSPACE"
+# ensure user local bin is on PATH for this session
+export PATH="$HOME/.local/bin:${PATH:-}"
+# ensure PYTHONUSERBASE is set to a sane default (resolved at runtime)
+export PYTHONUSERBASE="${PYTHONUSERBASE:-$(python3 -m site --user-base 2>/dev/null || echo "$HOME/.local") }"
+# Ensure pip is available for python3
+PIP_INFO=$(python3 -m pip --version 2>/dev/null || true)
+if [ -z "$PIP_INFO" ]; then
+  echo "error: pip not available for python3" >&2
+  exit 3
 fi
-# ensure pip in venv is usable; upgrade pip quietly (best-effort)
-"$VENV/bin/python" -m pip install --upgrade pip >/dev/null 2>&1 || true
-# install dependencies: prefer requirements.txt when non-empty, otherwise install streamlit and pytest
-if [ -f "$REQ" ] && [ -s "$REQ" ]; then
-  "$VENV/bin/pip" install --no-input --disable-pip-version-check --no-cache-dir -r "$REQ" >"$PIP_LOG" 2>&1
+# parse pip version robustly (second token usually X.Y.Z)
+PIP_VER=$(printf "%s" "$PIP_INFO" | awk '{print $2}')
+PIP_MAJOR=$(printf "%s" "$PIP_VER" | cut -d. -f1 || echo 0)
+# If pip major version is zero or not numeric, attempt user upgrade (very old pip)
+if ! printf "%s" "$PIP_MAJOR" | grep -Eq '^[0-9]+$' || [ "$PIP_MAJOR" -lt 1 ]; then
+  python3 -m pip install --upgrade --user pip --quiet || true
+fi
+# Install requirements into user site (quiet, non-interactive)
+if [ -f requirements.txt ]; then
+  python3 -m pip install --upgrade --user -r requirements.txt --quiet
 else
-  "$VENV/bin/pip" install --no-input --disable-pip-version-check --no-cache-dir streamlit pytest >"$PIP_LOG" 2>&1
+  echo "warning: requirements.txt not found in $WORKSPACE" >&2
 fi
-# verify imports using venv python
-"$VENV/bin/python" - <<'PY'
-import sys
+# verify usersite path
+USERSITE=$(python3 - <<'PY'
+import site
 try:
-    import streamlit, pytest
-except Exception as e:
-    print('dependency-import-failure:', e, file=sys.stderr)
-    sys.exit(4)
-print('ok')
+    print(site.getusersitepackages())
+except Exception:
+    print('')
 PY
+)
+if [ -z "$USERSITE" ] || [ ! -d "$USERSITE" ]; then
+  echo "warning: python user-site not found: $USERSITE" >&2
+fi
+# verify streamlit import and print version
+INSTALLED_STREAMLIT=$(python3 - <<'PY'
+try:
+    import importlib
+    s = importlib.import_module('streamlit')
+    print(getattr(s, '__version__', ''))
+except Exception:
+    print('')
+PY
+)
+if [ -z "$INSTALLED_STREAMLIT" ]; then
+  echo "error: streamlit not importable after install" >&2
+  exit 6
+fi
+printf "streamlit %s\n" "$INSTALLED_STREAMLIT"
+# If REQUIREMENTS_PIN provided, print it and warn on mismatch (simple textual check)
+if [ -n "${REQUIREMENTS_PIN:-}" ]; then
+  printf "REQUIREMENTS_PIN=%s\n" "${REQUIREMENTS_PIN}"
+  # If REQUIREMENTS_PIN looks like a pinned version for streamlit (e.g. streamlit==1.25.0), warn if mismatch
+  case "${REQUIREMENTS_PIN}" in
+    *streamlit==*)
+      PIN_VER=${REQUIREMENTS_PIN#*streamlit==}
+      if [ "$PIN_VER" != "$INSTALLED_STREAMLIT" ]; then
+        echo "warning: installed streamlit ($INSTALLED_STREAMLIT) does not match REQUIREMENTS_PIN ($PIN_VER)" >&2
+      fi
+      ;;
+  esac
+fi
